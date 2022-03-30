@@ -1,11 +1,13 @@
+use boardgamegeek_cli::fetch_collection;
 use clap::Parser;
 use console::style;
+use rayon::prelude::*;
 use regex::Regex;
 
 // @see https://boardgamegeek.com/wiki/page/BGG_XML_API
 // @see https://boardgamegeek.com/xmlapi/collection/cedeber
 
-/// Simple program to greet a person
+/// Simple program to list all board games from a BoardGameGeek user.
 #[derive(Parser, Debug)]
 #[clap(author, version, about, long_about = None)]
 struct Args {
@@ -16,62 +18,35 @@ struct Args {
 	/// Filter by title with a RegExp
 	#[clap(short, long)]
 	filter: Option<String>,
+
+	/// How long you want to play, in minutes.
+	#[clap(short, long)]
+	time: Option<i8>,
 }
 
 #[tokio::main]
 async fn main() {
 	let args = Args::parse();
 
-	let resp = reqwest::get(format!(
-		"https://boardgamegeek.com/xmlapi/collection/{}",
-		&args.username
-	))
-	.await
-	.unwrap()
-	.text()
-	.await
-	.unwrap();
+	let mut games = fetch_collection(&args.username).await;
 
-	let doc = match roxmltree::Document::parse(&resp) {
-		Ok(doc) => doc,
-		Err(e) => {
-			println!("Error: {}.", e);
-			return;
-		}
-	};
+	// TODO Fuzzy search
+	if let Some(filter) = &args.filter {
+		let re = Regex::new(filter).unwrap();
 
-	for node in
-		doc.descendants()
-			.filter(|n| n.has_tag_name("item"))
-			.filter(|n| n.attribute("subtype") == Some("boardgame"))
-			.filter(|n| {
-				n.descendants()
-					.find(|n| n.has_tag_name("status"))
-					.unwrap()
-					.attribute("own") == Some("1")
-			}) {
-		let mut children = node.children();
-		let name = children.find(|n| n.has_tag_name("name"));
-		let year = children.find(|n| n.has_tag_name("yearpublished"));
+		games = games
+			.into_par_iter()
+			.filter(|game| re.find(&game.name).is_some())
+			.collect();
+	}
 
-		if let Some(name) = name {
-			let name = name.text().unwrap();
-			let year = match year {
-				// TODO Check if it's negative
-				Some(year) => year.text().unwrap(),
-				None => "    ",
-			};
-
-			// TODO Implement fuzzy search
-			if let Some(filter) = &args.filter {
-				let re = Regex::new(filter).unwrap();
-
-				if re.find(name).is_some() {
-					println!("{} {}", style(year).cyan(), name);
-				}
-			} else {
-				println!("{} {}", style(year).cyan(), name);
-			}
-		}
+	// Output
+	for game in games {
+		println!(
+			"{} {} {}",
+			style(game.year).cyan(),
+			style(format!("{:3}m", game.playtime)).green(),
+			game.name
+		);
 	}
 }

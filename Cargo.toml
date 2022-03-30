@@ -2,11 +2,22 @@
 name = "boardgamegeek-cli"
 version = "0.1.0"
 edition = "2021"
+authors = ["Cédric Eberhardt"]
+
+[profile.release]
+# Link-Time Optimization using whole-program analysis.
+# It will make the app smaller, but it will also make it faster at runtime!
+lto = true
+# This causes debuginfo to be stripped from release binaries.
+strip = "debuginfo"
 
 [dependencies]
 clap = { version = "3.1.6", features = ["derive"] }
 console = "0.15.0"
+rayon = "1.5.1"
 regex = "1.5.5"
 reqwest = "0.11.10"
 roxmltree = "0.14.1"
+serde = { version = "1.0.136", features = ["derive"] }
 tokio = { version = "1.17.0", features = ["full"] }
+toml = "0.5.8"
