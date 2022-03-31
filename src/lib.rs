@@ -7,7 +7,7 @@ pub struct GameBoard {
 	pub year: String,
 	// min_players: i8,
 	// max_players: i8,
-	pub playtime: i8, // minutes
+	pub playtime: i16, // minutes
 }
 
 pub async fn fetch_collection(username: &str) -> Vec<GameBoard> {
@@ -55,7 +55,7 @@ pub async fn fetch_collection(username: &str) -> Vec<GameBoard> {
 				Some(year) => year.text().unwrap(),
 				None => "    ",
 			};
-			let playtime: i8 = match playtime {
+			let playtime: i16 = match playtime {
 				Some(time) => time.parse().unwrap_or(0),
 				None => 0,
 			};
