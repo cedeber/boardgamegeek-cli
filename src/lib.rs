@@ -1,7 +1,8 @@
-use serde::{Deserialize, Serialize};
+use serde::Serialize;
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize)]
 pub struct GameBoard {
+	pub id: String,
 	pub name: String,
 	pub year: String,
 	// min_players: i8,
@@ -13,8 +14,7 @@ pub async fn fetch_collection(username: &str) -> Vec<GameBoard> {
 	let mut games: Vec<GameBoard> = Vec::new();
 
 	let resp = reqwest::get(format!(
-		"https://boardgamegeek.com/xmlapi/collection/{}",
-		username
+		"https://boardgamegeek.com/xmlapi/collection/{username}"
 	))
 	.await
 	.unwrap()
@@ -39,6 +39,7 @@ pub async fn fetch_collection(username: &str) -> Vec<GameBoard> {
 					.unwrap()
 					.attribute("own") == Some("1")
 			}) {
+		let id = node.attribute("objectid").unwrap();
 		let mut children = node.children();
 		let name = children.find(|n| n.has_tag_name("name"));
 		let year = children.find(|n| n.has_tag_name("yearpublished"));
@@ -60,6 +61,7 @@ pub async fn fetch_collection(username: &str) -> Vec<GameBoard> {
 			};
 
 			games.push(GameBoard {
+				id: String::from(id),
 				name: String::from(name),
 				year: String::from(year),
 				playtime,

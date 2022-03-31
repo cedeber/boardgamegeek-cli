@@ -2,3 +2,8 @@
 *.log
 .idea
 .DS_Store
+
+# Export
+*.toml
+!Cargo.toml
+!rustfmt.toml
