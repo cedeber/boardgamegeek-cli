@@ -1,5 +1,6 @@
 [package]
 name = "boardgamegeek-cli"
+description = "List game boards from BGG user collection"
 version = "0.1.0"
 edition = "2021"
 authors = ["Cédric Eberhardt"]
@@ -12,7 +13,7 @@ lto = true
 strip = "debuginfo"
 
 [dependencies]
-clap = { version = "3.1.6", features = ["derive"] }
+clap = { version = "3.1.8", features = ["derive"] }
 console = "0.15.0"
 rayon = "1.5.1"
 regex = "1.5.5"
@@ -21,3 +22,4 @@ roxmltree = "0.14.1"
 serde = { version = "1.0.136", features = ["derive"] }
 tokio = { version = "1.17.0", features = ["full"] }
 toml = "0.5.8"
+unicode-segmentation = "1.9.0"

@@ -1,11 +1,5 @@
-use boardgamegeek_cli::{fetch_collection, GameBoard};
+use boardgamegeek_cli::{export, fetch_collection, filter, output};
 use clap::Parser;
-use console::style;
-use rayon::prelude::*;
-use regex::Regex;
-use serde::Serialize;
-use std::fs::File;
-use std::io::Write;
 
 // @see https://boardgamegeek.com/wiki/page/BGG_XML_API
 // @see https://boardgamegeek.com/xmlapi/collection/cedeber
@@ -31,45 +25,19 @@ struct Args {
 	export: bool,
 }
 
-#[derive(Debug, Clone, Serialize)]
-struct GameExport {
-	games: Vec<GameBoard>,
-}
-
 #[tokio::main]
 async fn main() {
 	let args = Args::parse();
 
-	let mut games = fetch_collection(&args.username).await;
+	let games = fetch_collection(&args.username).await;
+	let games = match &args.filter {
+		Some(regex) => filter(&games, regex),
+		None => games,
+	};
 
-	// TODO Fuzzy search
-	if let Some(filter) = &args.filter {
-		let re = Regex::new(filter).unwrap();
+	output(&games);
 
-		games = games
-			.into_par_iter()
-			.filter(|game| re.find(&game.name).is_some())
-			.collect();
-	}
-
-	// Output
-	for game in &games {
-		println!(
-			"{} {} {}",
-			style(&game.year).cyan(),
-			style(format!("{:3}m", &game.playtime)).green(),
-			&game.name
-		);
-	}
-
-	// Export
 	if args.export {
-		let export = GameExport { games };
-
-		let toml = toml::to_string(&export).unwrap();
-		let path = "export.toml";
-
-		let mut output = File::create(path).unwrap();
-		output.write_all(toml.as_ref()).unwrap();
+		export(&games);
 	}
 }
