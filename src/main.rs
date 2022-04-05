@@ -1,4 +1,4 @@
-use boardgamegeek_cli::{export, fetch_collection, filter, output};
+use boardgamegeek_cli::{db, export, fetch_collection, filter, output};
 use clap::Parser;
 
 // @see https://boardgamegeek.com/wiki/page/BGG_XML_API
@@ -23,6 +23,10 @@ struct Args {
 	/// Export to a TOML file
 	#[clap(short, long)]
 	export: bool,
+
+	/// Export to SQLite
+	#[clap(long)]
+	db: bool,
 }
 
 #[tokio::main]
@@ -39,5 +43,9 @@ async fn main() {
 
 	if args.export {
 		export(&games);
+	}
+
+	if args.db {
+		db(&games).await.unwrap();
 	}
 }

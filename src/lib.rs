@@ -2,8 +2,8 @@ use console::{style, Term};
 use rayon::prelude::*;
 use regex::Regex;
 use serde::Serialize;
+use sqlx::{query, SqlitePool};
 use std::{fs::File, io::Write};
-use unicode_segmentation::UnicodeSegmentation;
 
 #[derive(Debug, Clone, Serialize)]
 struct GameExport {
@@ -114,7 +114,6 @@ pub fn output(games: &[GameBoard]) {
 	let title_max_length: usize = games
 		.into_par_iter()
 		.map(|g| g.name.chars().count())
-		// .map(|g| g.name.graphemes(true).count())
 		.max_by(|x, y| x.cmp(y))
 		.unwrap();
 
@@ -151,4 +150,28 @@ pub fn export(games: &[GameBoard]) {
 
 	let mut output = File::create(path).unwrap();
 	output.write_all(toml.as_ref()).unwrap();
+}
+
+pub async fn db(games: &[GameBoard]) -> Result<(), sqlx::Error> {
+	// Check .env
+	let pool = SqlitePool::connect("sqlite:games.sqlite").await?;
+
+	for game in games {
+		let _ = query!(
+			r#"
+INSERT OR REPLACE INTO boardgames (gameid, title, published, playing_time, min_players, max_players)
+VALUES ( ?1, ?2, ?3, ?4, ?5, ?6 )
+	"#,
+			game.id,
+			game.name,
+			game.year,
+			game.playtime,
+			game.min_players,
+			game.max_players
+		)
+		.execute(&pool)
+		.await?;
+	}
+
+	Ok(())
 }

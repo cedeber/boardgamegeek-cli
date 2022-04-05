@@ -17,6 +17,12 @@ This README would normally document whatever steps are necessary to get your app
 * How to run tests
 * Deployment instructions
 
+```shell
+sqlx database drop # if there is already a db
+sqlx database create
+sqlx migrate run
+```
+
 ### Contribution guidelines ###
 
 * Writing tests
