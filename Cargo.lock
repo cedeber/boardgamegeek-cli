@@ -83,6 +83,7 @@ dependencies = [
  "sqlx",
  "tokio",
  "toml",
+ "unicode-segmentation",
 ]
 
 [[package]]

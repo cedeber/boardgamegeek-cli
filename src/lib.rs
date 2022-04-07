@@ -4,6 +4,7 @@ use regex::Regex;
 use serde::Serialize;
 use sqlx::{query, SqlitePool};
 use std::{fs::File, io::Write};
+use unicode_segmentation::UnicodeSegmentation;
 
 #[derive(Debug, Clone, Serialize)]
 struct GameExport {
@@ -113,7 +114,7 @@ pub fn output(games: &[GameBoard]) {
 	let mut term = Term::stdout();
 	let title_max_length: usize = games
 		.into_par_iter()
-		.map(|g| g.name.chars().count())
+		.map(|g| g.name.graphemes(true).count())
 		.max_by(|x, y| x.cmp(y))
 		.unwrap();
 
@@ -134,7 +135,7 @@ pub fn output(games: &[GameBoard]) {
 		// term.move_cursor_right(title_max_length + 1).unwrap();
 		// term.write_all("⎮".as_bytes()).unwrap();
 		term.write_all(text.as_bytes()).unwrap();
-		term.move_cursor_right(title_max_length - game.name.chars().count() + 1)
+		term.move_cursor_right(title_max_length - game.name.graphemes(true).count() + 1)
 			.unwrap();
 		term.write_line("⎮").unwrap();
 	}
