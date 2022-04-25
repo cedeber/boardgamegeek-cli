@@ -159,6 +159,7 @@ pub async fn db(games: &[GameBoard]) -> Result<(), sqlx::Error> {
 
 	for game in games {
 		let _ = query!(
+			// language=SQLite
 			r#"
 INSERT OR REPLACE INTO boardgames (gameid, title, published, playing_time, min_players, max_players)
 VALUES ( ?1, ?2, ?3, ?4, ?5, ?6 )
