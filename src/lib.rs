@@ -1,5 +1,4 @@
 use console::{style, Term};
-use rayon::prelude::*;
 use regex::Regex;
 use serde::Serialize;
 use sqlx::{query, SqlitePool};
@@ -104,8 +103,8 @@ pub fn filter(games: &[GameBoard], regex: &str) -> Vec<GameBoard> {
 	let re = Regex::new(regex).unwrap();
 
 	games
-		.to_owned()
-		.into_par_iter()
+		.iter()
+		.cloned()
 		.filter(|game| re.find(&game.name).is_some())
 		.collect()
 }
@@ -113,7 +112,7 @@ pub fn filter(games: &[GameBoard], regex: &str) -> Vec<GameBoard> {
 pub fn output(games: &[GameBoard]) {
 	let mut term = Term::stdout();
 	let title_max_length: usize = games
-		.into_par_iter()
+		.iter()
 		.map(|g| g.name.graphemes(true).count())
 		.max_by(|x, y| x.cmp(y))
 		.unwrap();
