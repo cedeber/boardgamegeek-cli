@@ -35,14 +35,26 @@ struct Args {
 
 #[tokio::main]
 async fn main() {
+	// parse the CLI arguments
 	let args = Args::parse();
 
-	let mut games = fetch_collection(&args.username).await;
+	// Fetch all games from BGG
+	let games = fetch_collection(&args.username).await;
+
+	if games.is_err() {
+		println!("Fetching the games in BGG failed: {}", games.err().unwrap());
+		return;
+	}
+
+	let mut games = games.unwrap();
+
+	// Apply the regex filter if any
 	games = match &args.filter {
 		Some(regex) => filter(&games, regex),
 		None => games,
 	};
 
+	// Filter the games by number of players
 	if let Some(players) = args.players {
 		games = games
 			.into_iter()
@@ -50,6 +62,7 @@ async fn main() {
 			.collect()
 	}
 
+	// Filter the games by time (+/- 10 minutes)
 	if let Some(time) = args.time {
 		games = games
 			.into_iter()
@@ -57,12 +70,15 @@ async fn main() {
 			.collect()
 	}
 
+	// Output the list of filtered games in the console.
 	output(&games);
 
+	// Export to TOML
 	if args.export {
 		export(&games);
 	}
 
+	// Write/Update the list into a SQLite file
 	if args.db {
 		db(&games).await.unwrap();
 	}

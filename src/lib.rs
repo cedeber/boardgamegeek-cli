@@ -5,13 +5,15 @@ use sqlx::{query, SqlitePool};
 use std::{fs::File, io::Write};
 use unicode_segmentation::UnicodeSegmentation;
 
+// Used for the TOML export. It will export by something like { games: [..] }
 #[derive(Debug, Clone, Serialize)]
 struct GameExport {
-	games: Vec<GameBoard>,
+	games: Vec<BoardGame>,
 }
 
+// Each board game struct
 #[derive(Debug, Clone, Serialize)]
-pub struct GameBoard {
+pub struct BoardGame {
 	pub id: String,
 	pub name: String,
 	pub year: String,
@@ -20,27 +22,57 @@ pub struct GameBoard {
 	pub playtime: i16, // minutes
 }
 
-pub async fn fetch_collection(username: &str) -> Vec<GameBoard> {
-	let mut games: Vec<GameBoard> = Vec::new();
+// Fetch the list of games for a specific user from BGG.
+// Also parse the XML and return a list of BoardGames.
+pub async fn fetch_collection(username: &str) -> Result<Vec<BoardGame>, reqwest::Error> {
+	let mut games: Vec<BoardGame> = Vec::new();
 
+	// Fetch the BGG API ans save the XML as text.
 	let resp = reqwest::get(format!(
 		"https://boardgamegeek.com/xmlapi/collection/{username}"
 	))
-	.await
-	.unwrap()
+	.await?
 	.text()
 	.await
-	.unwrap();
+	.unwrap(); // parsing to text should be fine.
 
+	// Parse the XML.
 	let doc = match roxmltree::Document::parse(&resp) {
 		Ok(doc) => doc,
 		Err(_) => {
-			return games;
+			// TODO Export parsing error
+			return Ok(games);
 		}
 	};
 
+	// Check if the returned XML does not contain <message>
+	if doc.root_element().has_tag_name("message") {
+		let message = doc.root_element().text().unwrap();
+		println!("{}", message.trim());
+		return Ok(vec![]);
+	}
+
+	// Check if the returned XML does not contain <errors><error><message>
+	if doc.root_element().has_tag_name("errors") {
+		let message = doc
+			.root_element() // <errors>
+			.first_element_child() // <error>
+			.unwrap()
+			.first_element_child() // <message>
+			.unwrap()
+			.text()
+			.unwrap();
+		println!("Error: {}", message.trim());
+		return Ok(vec![]);
+	}
+
+	// Go trough the XML Nodes and extract useful information.
+	// We use unwrap because we believe the XML API is stable and trustable.
+	// Crashing the application here means that the API changed anyway.
 	for node in
-		doc.descendants()
+		// If I own the game
+		doc
+			.descendants()
 			.filter(|n| n.has_tag_name("item"))
 			.filter(|n| n.attribute("subtype") == Some("boardgame"))
 			.filter(|n| {
@@ -54,6 +86,8 @@ pub async fn fetch_collection(username: &str) -> Vec<GameBoard> {
 		let name = children.find(|n| n.has_tag_name("name"));
 		let year = children.find(|n| n.has_tag_name("yearpublished"));
 		let stats = children.find(|n| n.has_tag_name("stats"));
+
+		// Default values
 		let mut playtime = Some("0");
 		let mut min_players = Some("0");
 		let mut max_players = Some("0");
@@ -64,6 +98,7 @@ pub async fn fetch_collection(username: &str) -> Vec<GameBoard> {
 			max_players = stats.attribute("maxplayers");
 		}
 
+		// If the game has a name, extract data and add it to the games list.
 		if let Some(name) = name {
 			let name = name.text().unwrap();
 			let year = match year {
@@ -71,20 +106,23 @@ pub async fn fetch_collection(username: &str) -> Vec<GameBoard> {
 				Some(year) => year.text().unwrap(),
 				None => "    ",
 			};
+
 			let playtime: i16 = match playtime {
 				Some(time) => time.parse().unwrap_or(0),
 				None => 0,
 			};
+
 			let min_players: i8 = match min_players {
 				Some(qqty) => qqty.parse().unwrap_or(0),
 				None => 0,
 			};
+
 			let max_players: i8 = match max_players {
 				Some(qqty) => qqty.parse().unwrap_or(0),
 				None => 0,
 			};
 
-			games.push(GameBoard {
+			games.push(BoardGame {
 				id: String::from(id),
 				name: String::from(name),
 				year: String::from(year),
@@ -95,11 +133,13 @@ pub async fn fetch_collection(username: &str) -> Vec<GameBoard> {
 		}
 	}
 
-	games
+	// return the games list
+	Ok(games)
 }
 
 // TODO Fuzzy search
-pub fn filter(games: &[GameBoard], regex: &str) -> Vec<GameBoard> {
+// Filter the games by name
+pub fn filter(games: &[BoardGame], regex: &str) -> Vec<BoardGame> {
 	let re = Regex::new(regex).unwrap();
 
 	games
@@ -109,7 +149,14 @@ pub fn filter(games: &[GameBoard], regex: &str) -> Vec<GameBoard> {
 		.collect()
 }
 
-pub fn output(games: &[GameBoard]) {
+// Output the games list to the console
+pub fn output(games: &[BoardGame]) {
+	// Keep to show clippy hint ;-)
+	if games.len() == 0 {
+		println!("No games found.");
+		return;
+	}
+
 	let mut term = Term::stdout();
 	let title_max_length: usize = games
 		.iter()
@@ -140,7 +187,8 @@ pub fn output(games: &[GameBoard]) {
 	}
 }
 
-pub fn export(games: &[GameBoard]) {
+// Export to TOML
+pub fn export(games: &[BoardGame]) {
 	let export = GameExport {
 		games: games.to_owned(),
 	};
@@ -152,7 +200,8 @@ pub fn export(games: &[GameBoard]) {
 	output.write_all(toml.as_ref()).unwrap();
 }
 
-pub async fn db(games: &[GameBoard]) -> Result<(), sqlx::Error> {
+// Save to SQLite DB
+pub async fn db(games: &[BoardGame]) -> Result<(), sqlx::Error> {
 	// Check .env
 	let pool = SqlitePool::connect("sqlite:games.sqlite").await?;
 
