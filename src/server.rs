@@ -24,6 +24,7 @@ pub async fn run() {
 
 	let backend = tokio::spawn(async {
 		let allowed_methods = vec![Method::GET, Method::POST];
+		// let origins = ["http://localhost:3000".parse::<HeaderValue>().unwrap()];
 
 		// TODO: .nest() for /api + CORS
 		let app = Router::new()
@@ -34,7 +35,7 @@ pub async fn run() {
 				// see https://docs.rs/tower-http/latest/tower_http/cors/index.html
 				// for more details
 				CorsLayer::new()
-					.allow_origin("http://localhost:3000".parse::<HeaderValue>().unwrap())
+					.allow_origin(Any)
 					.allow_methods(allowed_methods)
 					.allow_headers(Any),
 			);
