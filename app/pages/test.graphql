@@ -1,0 +1,13 @@
+query Games($limit: Int) {
+  games(limit: $limit) {
+    id
+    name
+  }
+}
+
+query GamesPlaytime {
+  games {
+    id
+    playtime
+  }
+}

@@ -43,20 +43,22 @@ export type QueryGamesArgs = {
   limit?: InputMaybe<Scalars['Int']>;
 };
 
-export type GamesQueryVariables = Exact<{ [key: string]: never; }>;
+export type GamesQueryVariables = Exact<{
+  limit?: InputMaybe<Scalars['Int']>;
+}>;
 
 
 export type GamesQuery = { __typename?: 'Query', games: Array<{ __typename?: 'BoardGameResult', id: number, name: string }> };
 
-export type Games2QueryVariables = Exact<{ [key: string]: never; }>;
+export type GamesPlaytimeQueryVariables = Exact<{ [key: string]: never; }>;
 
 
-export type Games2Query = { __typename?: 'Query', games: Array<{ __typename?: 'BoardGameResult', id: number, playtime?: number | null }> };
+export type GamesPlaytimeQuery = { __typename?: 'Query', games: Array<{ __typename?: 'BoardGameResult', id: number, playtime?: number | null }> };
 
 
 export const GamesDocument = gql`
-    query Games {
-  games {
+    query Games($limit: Int) {
+  games(limit: $limit) {
     id
     name
   }
@@ -75,6 +77,7 @@ export const GamesDocument = gql`
  * @example
  * const { data, loading, error } = useGamesQuery({
  *   variables: {
+ *      limit: // value for 'limit'
  *   },
  * });
  */
@@ -89,8 +92,8 @@ export function useGamesLazyQuery(baseOptions?: Apollo.LazyQueryHookOptions<Game
 export type GamesQueryHookResult = ReturnType<typeof useGamesQuery>;
 export type GamesLazyQueryHookResult = ReturnType<typeof useGamesLazyQuery>;
 export type GamesQueryResult = Apollo.QueryResult<GamesQuery, GamesQueryVariables>;
-export const Games2Document = gql`
-    query Games2 {
+export const GamesPlaytimeDocument = gql`
+    query GamesPlaytime {
   games {
     id
     playtime
@@ -99,31 +102,31 @@ export const Games2Document = gql`
     `;
 
 /**
- * __useGames2Query__
+ * __useGamesPlaytimeQuery__
  *
- * To run a query within a React component, call `useGames2Query` and pass it any options that fit your needs.
- * When your component renders, `useGames2Query` returns an object from Apollo Client that contains loading, error, and data properties
+ * To run a query within a React component, call `useGamesPlaytimeQuery` and pass it any options that fit your needs.
+ * When your component renders, `useGamesPlaytimeQuery` returns an object from Apollo Client that contains loading, error, and data properties
  * you can use to render your UI.
  *
  * @param baseOptions options that will be passed into the query, supported options are listed on: https://www.apollographql.com/docs/react/api/react-hooks/#options;
  *
  * @example
- * const { data, loading, error } = useGames2Query({
+ * const { data, loading, error } = useGamesPlaytimeQuery({
  *   variables: {
  *   },
  * });
  */
-export function useGames2Query(baseOptions?: Apollo.QueryHookOptions<Games2Query, Games2QueryVariables>) {
+export function useGamesPlaytimeQuery(baseOptions?: Apollo.QueryHookOptions<GamesPlaytimeQuery, GamesPlaytimeQueryVariables>) {
         const options = {...defaultOptions, ...baseOptions}
-        return Apollo.useQuery<Games2Query, Games2QueryVariables>(Games2Document, options);
+        return Apollo.useQuery<GamesPlaytimeQuery, GamesPlaytimeQueryVariables>(GamesPlaytimeDocument, options);
       }
-export function useGames2LazyQuery(baseOptions?: Apollo.LazyQueryHookOptions<Games2Query, Games2QueryVariables>) {
+export function useGamesPlaytimeLazyQuery(baseOptions?: Apollo.LazyQueryHookOptions<GamesPlaytimeQuery, GamesPlaytimeQueryVariables>) {
           const options = {...defaultOptions, ...baseOptions}
-          return Apollo.useLazyQuery<Games2Query, Games2QueryVariables>(Games2Document, options);
+          return Apollo.useLazyQuery<GamesPlaytimeQuery, GamesPlaytimeQueryVariables>(GamesPlaytimeDocument, options);
         }
-export type Games2QueryHookResult = ReturnType<typeof useGames2Query>;
-export type Games2LazyQueryHookResult = ReturnType<typeof useGames2LazyQuery>;
-export type Games2QueryResult = Apollo.QueryResult<Games2Query, Games2QueryVariables>;
+export type GamesPlaytimeQueryHookResult = ReturnType<typeof useGamesPlaytimeQuery>;
+export type GamesPlaytimeLazyQueryHookResult = ReturnType<typeof useGamesPlaytimeLazyQuery>;
+export type GamesPlaytimeQueryResult = Apollo.QueryResult<GamesPlaytimeQuery, GamesPlaytimeQueryVariables>;
 
       export interface PossibleTypesResultData {
         possibleTypes: {

@@ -8,7 +8,7 @@ module.exports = {
       // optional disable SSL validation check
       skipSSLValidation: true,
     },
-    includes: ["./pages/**/*.tsx"],
+    includes: ["./pages/**/*.{js,ts,jsx,tsx,graphql}", "./components/**/*.{js,ts,jsx,tsx,graphql}"],
     excludes: ["**/__tests__/**"],
   },
 };
