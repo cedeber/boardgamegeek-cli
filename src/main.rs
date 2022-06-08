@@ -1,4 +1,4 @@
-use boardgamegeek_cli::{db, export, fetch_collection, filter, output};
+use boardgamegeek_cli::{db, export, fetch_collection, filter, output, server};
 use clap::Parser;
 
 // @see https://boardgamegeek.com/wiki/page/BGG_XML_API
@@ -31,6 +31,10 @@ struct Args {
 	/// Export to SQLite
 	#[clap(long)]
 	db: bool,
+
+	/// Run server
+	#[clap(long)]
+	serve: bool,
 }
 
 #[tokio::main]
@@ -70,9 +74,6 @@ async fn main() {
 			.collect()
 	}
 
-	// Output the list of filtered games in the console.
-	output(&games);
-
 	// Export to TOML
 	if args.export {
 		export(&games);
@@ -81,5 +82,15 @@ async fn main() {
 	// Write/Update the list into a SQLite file
 	if args.db {
 		db(&games).await.unwrap();
+	}
+
+	if args.serve {
+		db(&games).await.unwrap();
+		server::run().await;
+	}
+
+	// Output the list of filtered games in the console.
+	if !args.export || !args.db || !args.serve {
+		output(&games);
 	}
 }

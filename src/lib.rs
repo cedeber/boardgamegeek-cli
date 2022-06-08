@@ -1,3 +1,6 @@
+pub mod server;
+
+use async_graphql::SimpleObject;
 use console::{style, Term};
 use regex::Regex;
 use serde::Serialize;
@@ -12,7 +15,7 @@ struct GameExport {
 }
 
 // Each board game struct
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Serialize, SimpleObject)]
 pub struct BoardGame {
 	pub id: String,
 	pub name: String,
@@ -207,7 +210,6 @@ pub async fn db(games: &[BoardGame]) -> Result<(), sqlx::Error> {
 
 	for game in games {
 		let _ = query!(
-			// language=SQLite
 			r#"
 INSERT OR REPLACE INTO boardgames (gameid, title, published, playing_time, min_players, max_players)
 VALUES ( ?1, ?2, ?3, ?4, ?5, ?6 )
