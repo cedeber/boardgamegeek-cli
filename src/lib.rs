@@ -154,8 +154,7 @@ pub fn filter(games: &[BoardGame], regex: &str) -> Vec<BoardGame> {
 
 // Output the games list to the console
 pub fn output(games: &[BoardGame]) {
-	// Keep to show clippy hint ;-)
-	if games.len() == 0 {
+	if games.is_empty() {
 		println!("No games found.");
 		return;
 	}
