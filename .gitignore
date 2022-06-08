@@ -9,3 +9,4 @@
 !rustfmt.toml
 *.db*
 *.sqlite*
+.env
