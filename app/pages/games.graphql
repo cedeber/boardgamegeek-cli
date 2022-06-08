@@ -4,10 +4,3 @@ query Games($limit: Int) {
     name
   }
 }
-
-query GamesPlaytime {
-  games {
-    id
-    playtime
-  }
-}

@@ -1,10 +1,9 @@
 import type { NextPage } from "next";
 import Head from "next/head";
-import { useGamesPlaytimeQuery, useGamesQuery } from "../graphql";
+import { useGamesQuery } from "../graphql";
 
 const Home: NextPage = () => {
   const { loading, error, data } = useGamesQuery({ variables: { limit: 5 } });
-  const games2 = useGamesPlaytimeQuery();
 
   return (
     <div>
@@ -20,13 +19,6 @@ const Home: NextPage = () => {
           <>
             {data?.games?.map((game) => (
               <p key={game.id}>{game.name}</p>
-            ))}
-          </>
-        </div>
-        <div>
-          <>
-            {games2.data?.games?.map((game) => (
-              <p key={game.id}>{game.playtime}</p>
             ))}
           </>
         </div>
