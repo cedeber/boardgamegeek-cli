@@ -1,6 +1,13 @@
 overwrite: true
 schema: http://localhost:4000/graphql
 generates:
-  ./graphql.schema.json:
+#  ./graphql.schema.json:
+#    plugins:
+#      - introspection
+#    config:
+#      minify: true
+  ./schema.graphql:
     plugins:
-      - introspection
+      - schema-ast
+    config:
+      includeDirectives: true
