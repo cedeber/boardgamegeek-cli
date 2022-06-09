@@ -3,7 +3,7 @@ import Head from "next/head";
 import { useGamesQuery } from "../graphql";
 
 const Home: NextPage = () => {
-  const { loading, error, data } = useGamesQuery({ variables: { limit: 5 } });
+  const { loading, error, data } = useGamesQuery({ variables: { username: "cedeber" } });
 
   return (
     <div>

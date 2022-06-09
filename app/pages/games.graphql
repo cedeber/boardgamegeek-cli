@@ -1,5 +1,5 @@
-query Games($limit: Int) {
-  games(limit: $limit) {
+query Games($username: String!) {
+  games(username: $username) {
     id
     name
   }

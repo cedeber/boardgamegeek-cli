@@ -27,24 +27,16 @@ export type BoardGameResult = {
 
 export type Query = {
   __typename?: 'Query';
-  /** Returns the sum of a and b */
-  add: Scalars['Int'];
   games: Array<BoardGameResult>;
 };
 
 
-export type QueryAddArgs = {
-  a: Scalars['Int'];
-  b: Scalars['Int'];
-};
-
-
 export type QueryGamesArgs = {
-  limit?: InputMaybe<Scalars['Int']>;
+  username: Scalars['String'];
 };
 
 export type GamesQueryVariables = Exact<{
-  limit?: InputMaybe<Scalars['Int']>;
+  username: Scalars['String'];
 }>;
 
 
@@ -52,8 +44,8 @@ export type GamesQuery = { __typename?: 'Query', games: Array<{ __typename?: 'Bo
 
 
 export const GamesDocument = gql`
-    query Games($limit: Int) {
-  games(limit: $limit) {
+    query Games($username: String!) {
+  games(username: $username) {
     id
     name
   }
@@ -72,11 +64,11 @@ export const GamesDocument = gql`
  * @example
  * const { data, loading, error } = useGamesQuery({
  *   variables: {
- *      limit: // value for 'limit'
+ *      username: // value for 'username'
  *   },
  * });
  */
-export function useGamesQuery(baseOptions?: Apollo.QueryHookOptions<GamesQuery, GamesQueryVariables>) {
+export function useGamesQuery(baseOptions: Apollo.QueryHookOptions<GamesQuery, GamesQueryVariables>) {
         const options = {...defaultOptions, ...baseOptions}
         return Apollo.useQuery<GamesQuery, GamesQueryVariables>(GamesDocument, options);
       }

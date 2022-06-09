@@ -3,11 +3,11 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "concurrently 'next dev' 'npm run codegen -- --watch'",
+    "dev": "concurrently 'next dev' 'graphql-codegen --config ts.codegen.yml --watch'",
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "codegen": "graphql-codegen --config codegen.yml"
+    "graphql": "graphql-codegen --config schema.codegen.yml"
   },
   "dependencies": {
     "@apollo/client": "^3.6.6",

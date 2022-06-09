@@ -80,19 +80,12 @@ struct Query;
 
 #[Object]
 impl Query {
-	/// Returns the sum of a and b
-	async fn add(&self, a: i32, b: i32) -> i32 {
-		a + b
-	}
-
-	async fn games(&self, limit: Option<i32>) -> Vec<BoardGameResult> {
+	async fn games(&self, username: String) -> Vec<BoardGameResult> {
 		let pool = SqlitePool::connect("sqlite:games.sqlite").await.unwrap();
-		let limit = limit.unwrap_or(-1);
 
 		let result = query_as!(
 			BoardGameResult,
-			"SELECT gameid as id, title as name, published as year, playing_time as playtime, min_players, max_players FROM boardgames ORDER BY title LIMIT ?",
-			limit
+			"SELECT gameid as id, title as name, published as year, playing_time as playtime, min_players, max_players FROM boardgames ORDER BY title",
 		)
 		.fetch_all(&pool)
 		.await

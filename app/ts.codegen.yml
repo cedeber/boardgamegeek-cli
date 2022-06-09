@@ -1,0 +1,13 @@
+overwrite: true
+documents:
+  - ./pages/**/*.{js,ts,jsx,tsx,graphql}
+  - ./components/**/*.{js,ts,jsx,tsx,graphql}
+generates:
+  ./graphql.tsx:
+    schema: ./graphql.schema.json
+    plugins:
+      - typescript
+      - typescript-operations
+      - typescript-react-apollo
+      - fragment-matcher
+  
