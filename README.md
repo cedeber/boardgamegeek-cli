@@ -21,7 +21,6 @@ This README would normally document whatever steps are necessary to get your app
 sqlx database drop # if there is already a db
 sqlx database create
 sqlx migrate run
-cargo sqlx prepare # offline mode (no db on server to build)
 ```
 
 ### Contribution guidelines

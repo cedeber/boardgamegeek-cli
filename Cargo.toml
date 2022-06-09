@@ -28,7 +28,6 @@ sqlx = { version = "0.5.13", features = [
     "runtime-tokio-rustls",
     "sqlite",
     "macros",
-    "offline",
 ] }
 tokio = { version = "1.18.2", features = ["full"] }
 toml = "0.5.9"
