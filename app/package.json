@@ -7,7 +7,8 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "graphql": "graphql-codegen --config schema.codegen.yml"
+    "codegen": "graphql-codegen --config ts.codegen.yml",
+    "schema": "graphql-codegen --config schema.codegen.yml"
   },
   "dependencies": {
     "@apollo/client": "^3.6.6",
@@ -22,6 +23,7 @@
     "@graphql-codegen/cli": "2.6.2",
     "@graphql-codegen/fragment-matcher": "3.2.1",
     "@graphql-codegen/introspection": "2.1.1",
+    "@graphql-codegen/near-operation-file-preset": "^2.2.13",
     "@graphql-codegen/schema-ast": "^2.4.1",
     "@graphql-codegen/typescript": "2.4.11",
     "@graphql-codegen/typescript-operations": "2.4.0",

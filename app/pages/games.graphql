@@ -1,6 +1,6 @@
 query Games($username: String!) {
-  games(username: $username) {
-    id
-    name
-  }
+    games(username: $username) {
+        id
+        name
+    }
 }
