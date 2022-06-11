@@ -10,26 +10,26 @@ use clap::Parser;
 struct Args {
 	/// BoardGameGeek Username
 	#[clap()]
-	username: String,
+	username: Option<String>,
 
 	/// Filter by title with a RegExp
-	#[clap(short, long)]
+	#[clap(short, long, requires = "username")]
 	filter: Option<String>,
 
 	/// How long you want to play, in minutes. (+/- 10 minutes)
-	#[clap(short, long)]
-	time: Option<i16>,
+	#[clap(short, long, requires = "username")]
+	time: Option<i64>,
 
 	/// How many players
-	#[clap(short, long)]
-	players: Option<i8>,
+	#[clap(short, long, requires = "username")]
+	players: Option<i64>,
 
 	/// Export to a TOML file
-	#[clap(short, long)]
+	#[clap(short, long, requires = "username")]
 	export: bool,
 
 	/// Export to SQLite
-	#[clap(long)]
+	#[clap(long, requires = "username")]
 	db: bool,
 
 	/// Run server
@@ -42,55 +42,62 @@ async fn main() {
 	// parse the CLI arguments
 	let args = Args::parse();
 
-	// Fetch all games from BGG
-	let games = fetch_collection(&args.username).await;
+	if let Some(username) = &args.username {
+		// Fetch all games from BGG
+		let games = fetch_collection(username).await;
 
-	if games.is_err() {
-		println!("Fetching the games in BGG failed: {}", games.err().unwrap());
-		return;
-	}
+		if games.is_err() {
+			println!("Fetching the games in BGG failed: {}", games.err().unwrap());
+			return;
+		}
 
-	let mut games = games.unwrap();
+		let mut games = games.unwrap();
 
-	// Apply the regex filter if any
-	games = match &args.filter {
-		Some(regex) => filter(&games, regex),
-		None => games,
-	};
+		// Apply the regex filter if any
+		games = match &args.filter {
+			Some(regex) => filter(&games, regex),
+			None => games,
+		};
 
-	// Filter the games by number of players
-	if let Some(players) = args.players {
-		games = games
-			.into_iter()
-			.filter(|game| game.min_players <= players && game.max_players >= players)
-			.collect()
-	}
+		// Filter the games by number of players
+		if let Some(players) = args.players {
+			games = games
+				.into_iter()
+				.filter(|game| {
+					game.min_players.unwrap_or_default() <= players
+						&& game.max_players.unwrap_or_default() >= players
+				})
+				.collect()
+		}
 
-	// Filter the games by time (+/- 10 minutes)
-	if let Some(time) = args.time {
-		games = games
-			.into_iter()
-			.filter(|game| game.playtime <= time + 10 && game.playtime >= time - 10)
-			.collect()
-	}
+		// Filter the games by time (+/- 10 minutes)
+		if let Some(time) = args.time {
+			games = games
+				.into_iter()
+				.filter(|game| {
+					let playtime = game.playtime.unwrap_or_default();
+					playtime <= time + 10 && playtime >= time - 10
+				})
+				.collect()
+		}
 
-	// Export to TOML
-	if args.export {
-		export(&games);
-	}
+		// Export to TOML
+		if args.export {
+			export(&games);
+		}
 
-	// Write/Update the list into a SQLite file
-	if args.db {
-		db(&games).await.unwrap();
+		// Write/Update the list into a SQLite file
+		if args.db {
+			db(username, &games).await.unwrap();
+		}
+
+		// Output the list of filtered games in the console.
+		if !args.export || !args.db || !args.serve {
+			output(&games);
+		}
 	}
 
 	if args.serve {
-		db(&games).await.unwrap();
 		server::run().await;
-	}
-
-	// Output the list of filtered games in the console.
-	if !args.export || !args.db || !args.serve {
-		output(&games);
 	}
 }

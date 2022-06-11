@@ -12,5 +12,11 @@ type BoardGameResult {
 }
 
 type Query {
-  games(username: String!): [BoardGameResult!]!
+  games(username: String): [BoardGameResult!]!
+  users: [UserResult!]!
+}
+
+type UserResult {
+  id: Int
+  username: String!
 }

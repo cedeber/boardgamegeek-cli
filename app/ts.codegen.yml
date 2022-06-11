@@ -1,15 +1,15 @@
 overwrite: true
 schema: ./schema.graphql
 documents:
-  - ./pages/**/*.{gql,graphql}
-  - ./components/**/*.{gql,graphql}
+  - ./pages/**/*.graphql
+  - ./components/**/*.graphql
 generates:
   ./graphql.d.ts:
     - typescript
   ./:
     preset: near-operation-file
     presetConfig:
-      extension: .graphql.ts
+      extension: .gql.ts
       baseTypesPath: ./graphql.ts
     plugins:
       - typescript-operations

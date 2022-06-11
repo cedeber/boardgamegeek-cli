@@ -1,20 +1,22 @@
+use std::net::SocketAddr;
+
 use async_graphql::{
 	http::{playground_source, GraphQLPlaygroundConfig},
-	EmptyMutation, EmptySubscription, Object, Schema, SimpleObject,
+	EmptyMutation, EmptySubscription, Object, Schema,
 };
 use async_graphql_axum::{GraphQLRequest, GraphQLResponse};
 use axum::{
 	extract::Extension,
-	http::{HeaderValue, Method, StatusCode},
+	http::{Method, StatusCode},
 	response::{self, IntoResponse},
 	routing::{get, post},
 	Router, Server,
 };
-use serde::Serialize;
 use sqlx::{query_as, SqlitePool};
-use std::net::SocketAddr;
 use tower_http::cors::{Any, CorsLayer};
 use tracing::info;
+
+use crate::{BoardGame, User};
 
 pub async fn run() {
 	// initialize tracing
@@ -65,33 +67,50 @@ async fn hello() -> impl IntoResponse {
 	)
 }
 
-#[derive(Debug, Clone, Serialize, SimpleObject)]
-pub struct BoardGameResult {
-	pub id: i64,
-	pub name: String,
-	pub year: Option<i64>,
-	pub min_players: Option<i64>,
-	pub max_players: Option<i64>,
-	pub playtime: Option<i64>,
-}
-
 #[derive(Default)]
 struct Query;
 
 #[Object]
 impl Query {
-	async fn games(&self, username: String) -> Vec<BoardGameResult> {
+	async fn games(&self, username: Option<String>) -> Vec<BoardGame> {
 		let pool = SqlitePool::connect("sqlite:games.sqlite").await.unwrap();
 
-		let result = query_as!(
-			BoardGameResult,
-			"SELECT gameid as id, title as name, published as year, playing_time as playtime, min_players, max_players FROM boardgames ORDER BY title",
+		let result = match username {
+            // language=SQLite
+            None => query_as::<_, BoardGame>(r#"
+					SELECT gameid as id, title as name, published as year, playing_time as playtime, min_players, max_players
+					FROM boardgames ORDER BY title
+				"#)
+                .fetch_all(&pool)
+                .await,
+            // language=SQLite
+            Some(username) => query_as::<_, BoardGame>(r#"
+					SELECT gameid as id, title as name, published as year, playing_time as playtime, min_players, max_players
+					FROM boardgames
+					INNER JOIN boardgames_users on boardgames_users.game_id = boardgames.gameid
+					INNER JOIN users on users.id = boardgames_users.user_id
+					WHERE username = $1
+					ORDER BY title
+				"#)
+                .bind(username)
+                .fetch_all(&pool)
+                .await,
+        };
+
+		// result.unwrap_or_default()
+		result.unwrap()
+	}
+
+	async fn users(&self) -> Vec<User> {
+		let pool = SqlitePool::connect("sqlite:games.sqlite").await.unwrap();
+
+		query_as::<_, User>(
+			// language=SQLite
+			r#"SELECT id, username FROM users ORDER BY username"#,
 		)
 		.fetch_all(&pool)
 		.await
-		.unwrap();
-
-		result
+		.unwrap()
 	}
 }
 

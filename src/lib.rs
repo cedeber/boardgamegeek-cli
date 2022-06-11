@@ -1,12 +1,13 @@
-pub mod server;
+use std::{fs::File, io::Write};
 
 use async_graphql::SimpleObject;
 use console::{style, Term};
 use regex::Regex;
 use serde::Serialize;
-use sqlx::{query, SqlitePool};
-use std::{fs::File, io::Write};
+use sqlx::{query, query_as, FromRow, SqlitePool};
 use unicode_segmentation::UnicodeSegmentation;
+
+pub mod server;
 
 // Used for the TOML export. It will export by something like { games: [..] }
 #[derive(Debug, Clone, Serialize)]
@@ -15,14 +16,20 @@ struct GameExport {
 }
 
 // Each board game struct
-#[derive(Debug, Clone, Serialize, SimpleObject)]
+#[derive(Debug, Clone, Serialize, SimpleObject, FromRow)]
 pub struct BoardGame {
-	pub id: String,
+	pub id: i64,
 	pub name: String,
-	pub year: String,
-	pub min_players: i8,
-	pub max_players: i8,
-	pub playtime: i16, // minutes
+	pub year: Option<i64>,
+	pub min_players: Option<i64>,
+	pub max_players: Option<i64>,
+	pub playtime: Option<i64>, // minutes
+}
+
+#[derive(Debug, Clone, Serialize, SimpleObject, FromRow)]
+pub struct User {
+	pub id: Option<i64>,
+	pub username: String,
 }
 
 // Fetch the list of games for a specific user from BGG.
@@ -32,7 +39,8 @@ pub async fn fetch_collection(username: &str) -> Result<Vec<BoardGame>, reqwest:
 
 	// Fetch the BGG API ans save the XML as text.
 	let resp = reqwest::get(format!(
-		"https://boardgamegeek.com/xmlapi/collection/{username}"
+		"https://boardgamegeek.com/xmlapi/collection/{}",
+		username
 	))
 	.await?
 	.text()
@@ -91,44 +99,31 @@ pub async fn fetch_collection(username: &str) -> Result<Vec<BoardGame>, reqwest:
 		let stats = children.find(|n| n.has_tag_name("stats"));
 
 		// Default values
-		let mut playtime = Some("0");
-		let mut min_players = Some("0");
-		let mut max_players = Some("0");
+		let mut playtime = Some(0);
+		let mut min_players = Some(0);
+		let mut max_players = Some(0);
 
 		if let Some(stats) = stats {
-			playtime = stats.attribute("playingtime");
-			min_players = stats.attribute("minplayers");
-			max_players = stats.attribute("maxplayers");
+			playtime = stats
+				.attribute("playingtime")
+				.map(|time| time.parse::<i64>().unwrap_or_default());
+			min_players = stats
+				.attribute("minplayers")
+				.map(|minplayers| minplayers.parse::<i64>().unwrap_or_default());
+			max_players = stats
+				.attribute("maxplayers")
+				.map(|maxplayers| maxplayers.parse::<i64>().unwrap_or_default());
 		}
 
 		// If the game has a name, extract data and add it to the games list.
 		if let Some(name) = name {
 			let name = name.text().unwrap();
-			let year = match year {
-				// TODO Check if it's negative
-				Some(year) => year.text().unwrap(),
-				None => "    ",
-			};
-
-			let playtime: i16 = match playtime {
-				Some(time) => time.parse().unwrap_or(0),
-				None => 0,
-			};
-
-			let min_players: i8 = match min_players {
-				Some(qqty) => qqty.parse().unwrap_or(0),
-				None => 0,
-			};
-
-			let max_players: i8 = match max_players {
-				Some(qqty) => qqty.parse().unwrap_or(0),
-				None => 0,
-			};
+			let year = year.map(|year| year.text().unwrap().parse::<i64>().unwrap_or_default());
 
 			games.push(BoardGame {
-				id: String::from(id),
+				id: id.parse::<i64>().unwrap_or_default(),
 				name: String::from(name),
-				year: String::from(year),
+				year,
 				playtime,
 				min_players,
 				max_players,
@@ -171,12 +166,16 @@ pub fn output(games: &[BoardGame]) {
 			"⎮ {} ⎮ {} ⎮ {} ⎮ {}",
 			style(format!(
 				"{:1} ⇢{:2}p",
-				&game.min_players.min(99),
-				&game.max_players.min(99)
+				&game.min_players.unwrap_or_default().min(99),
+				&game.max_players.unwrap_or_default().min(99)
 			))
 			.magenta(),
-			style(format!("{:3}m", &game.playtime.min(999))).green(),
-			style(format!("{:4}", &game.year)).cyan(),
+			style(format!(
+				"{:3}m",
+				&game.playtime.unwrap_or_default().min(999)
+			))
+			.green(),
+			style(format!("{:4}", &game.year.unwrap_or_default())).cyan(),
 			&game.name
 		);
 
@@ -203,24 +202,45 @@ pub fn export(games: &[BoardGame]) {
 }
 
 // Save to SQLite DB
-pub async fn db(games: &[BoardGame]) -> Result<(), sqlx::Error> {
+pub async fn db(username: &str, games: &[BoardGame]) -> Result<(), sqlx::Error> {
+	#[derive(Debug, Clone, Serialize, SimpleObject, FromRow)]
+	pub struct User {
+		pub id: Option<i64>,
+	}
+
 	// Check .env
 	let pool = SqlitePool::connect("sqlite:games.sqlite").await?;
 
+	// language=SQLite
+	let _ = query("INSERT OR IGNORE INTO users (username) VALUES ($1)")
+		.bind(username)
+		.execute(&pool)
+		.await?;
+
+	// language=SQLite
+	let user = query_as::<_, User>("SELECT id FROM users WHERE username IS $1")
+		.bind(username)
+		.fetch_one(&pool)
+		.await?;
+
+	let user = user.id.unwrap();
+
 	for game in games {
-		let _ = query!(
+		let _ = query(
 			// language=SQLite
 			r#"
-INSERT OR REPLACE INTO boardgames (gameid, title, published, playing_time, min_players, max_players)
-VALUES ( ?1, ?2, ?3, ?4, ?5, ?6 )
-	"#,
-			game.id,
-			game.name,
-			game.year,
-			game.playtime,
-			game.min_players,
-			game.max_players
+			INSERT OR REPLACE INTO boardgames (gameid, title, published, playing_time, min_players, max_players)
+			VALUES ( $1, $2, $3, $4, $5, $6 );
+			INSERT OR IGNORE INTO boardgames_users (game_id, user_id) VALUES ($1, $7);
+		"#,
 		)
+		.bind(&game.id)
+		.bind(&game.name)
+		.bind(&game.year)
+		.bind(&game.playtime)
+		.bind(&game.min_players)
+		.bind(&game.max_players)
+		.bind(&user)
 		.execute(&pool)
 		.await?;
 	}

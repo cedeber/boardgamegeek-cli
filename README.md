@@ -23,6 +23,9 @@ sqlx database create
 sqlx migrate run
 ```
 
+Don't forget to activate "PRAGMA foreign_keys" in IDE for SQLite.
+It is activated by default by sqlx.
+
 ### Contribution guidelines
 
 - Writing tests
