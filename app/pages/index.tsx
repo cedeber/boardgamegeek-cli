@@ -1,10 +1,7 @@
 import type {NextPage} from "next";
 import Head from "next/head";
-import {useGamesQuery} from "./games.gql";
 
 const Home: NextPage = () => {
-    const {loading, error, data} = useGamesQuery({variables: {username: "cedeber"}});
-
     return (
         <div>
             <Head>
@@ -15,15 +12,6 @@ const Home: NextPage = () => {
 
             <main>
                 <h1 className="text-3xl font-bold underline">Hello world!</h1>
-                <div>
-                    {loading && "Loading..."}
-                    {error && <p>Error: {error.message}</p>}
-                    <>
-                        {data?.games?.map((game) => (
-                            <p key={game.id}>{game.name}</p>
-                        ))}
-                    </>
-                </div>
             </main>
         </div>
     );
