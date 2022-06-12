@@ -1,8 +1,9 @@
+use std::error::Error;
 use std::net::SocketAddr;
 
 use async_graphql::{
 	http::{playground_source, GraphQLPlaygroundConfig},
-	EmptyMutation, EmptySubscription, Object, Schema,
+	Context, EmptyMutation, EmptySubscription, Object, Schema,
 };
 use async_graphql_axum::{GraphQLRequest, GraphQLResponse};
 use axum::{
@@ -12,17 +13,20 @@ use axum::{
 	routing::{get, post},
 	Router, Server,
 };
-use sqlx::{query_as, SqlitePool};
+use sqlx::{query_as, Pool, Sqlite, SqlitePool};
 use tower_http::cors::{Any, CorsLayer};
 use tracing::info;
 
-use crate::{BoardGame, User};
+use crate::{db, fetch_collection, BoardGame, User};
 
 pub async fn run() {
 	// initialize tracing
 	tracing_subscriber::fmt::init();
 
-	let schema = Schema::new(Query::default(), EmptyMutation, EmptySubscription);
+	let pool = SqlitePool::connect("sqlite:games.sqlite").await.unwrap();
+	let schema = Schema::build(Query::default(), EmptyMutation, EmptySubscription)
+		.data(pool)
+		.finish();
 
 	let backend = tokio::spawn(async {
 		let allowed_methods = vec![Method::GET, Method::POST];
@@ -72,19 +76,36 @@ struct Query;
 
 #[Object]
 impl Query {
-	async fn games(&self, username: Option<String>) -> Vec<BoardGame> {
-		let pool = SqlitePool::connect("sqlite:games.sqlite").await.unwrap();
+	async fn games(
+		&self,
+		ctx: &Context<'_>,
+		username: Option<String>,
+	) -> Result<Vec<BoardGame>, String> {
+		let pool = match ctx.data::<Pool<Sqlite>>() {
+			Ok(pool) => pool,
+			_ => return Err(String::from("Cannot access the Database.")),
+		};
 
-		let result = match username {
+		match username {
             // language=SQLite
-            None => query_as::<_, BoardGame>(r#"
-					SELECT gameid as id, title as name, published as year, playing_time as playtime, min_players, max_players
-					FROM boardgames ORDER BY title
-				"#)
-                .fetch_all(&pool)
-                .await,
-            // language=SQLite
-            Some(username) => query_as::<_, BoardGame>(r#"
+            None => match query_as::<_, BoardGame>(r#"
+						SELECT gameid as id, title as name, published as year, playing_time as playtime, min_players, max_players
+						FROM boardgames ORDER BY title
+					"#)
+                .fetch_all(pool)
+                .await {
+                Ok(games) => Ok(games),
+                _ => Err(String::from("Error querying the games"))
+            },
+            Some(username) => {
+                // Fetch and save the games into the db.
+                let games = fetch_collection(&username).await;
+                if let Ok(games) = games {
+                    db(&username, &games).await;
+                }
+
+                // language=SQLite
+                match query_as::<_, BoardGame>(r#"
 					SELECT gameid as id, title as name, published as year, playing_time as playtime, min_players, max_players
 					FROM boardgames
 					INNER JOIN boardgames_users on boardgames_users.game_id = boardgames.gameid
@@ -92,25 +113,26 @@ impl Query {
 					WHERE username = $1
 					ORDER BY title
 				"#)
-                .bind(username)
-                .fetch_all(&pool)
-                .await,
-        };
-
-		// result.unwrap_or_default()
-		result.unwrap()
+                    .bind(username)
+                    .fetch_all(pool)
+                    .await {
+                    Ok(games) => Ok(games),
+                    _ => Err(String::from("Error getting the games list"))
+                }
+            }
+        }
 	}
 
-	async fn users(&self) -> Vec<User> {
-		let pool = SqlitePool::connect("sqlite:games.sqlite").await.unwrap();
-
-		query_as::<_, User>(
+	async fn users(&self, ctx: &Context<'_>) -> Result<Vec<User>, Box<sqlx::Error>> {
+		let pool = ctx.data::<Pool<Sqlite>>().unwrap();
+		let users = query_as::<_, User>(
 			// language=SQLite
 			r#"SELECT id, username FROM users ORDER BY username"#,
 		)
-		.fetch_all(&pool)
-		.await
-		.unwrap()
+		.fetch_all(pool)
+		.await?;
+
+		Ok(users)
 	}
 }
 
