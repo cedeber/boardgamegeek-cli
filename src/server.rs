@@ -1,6 +1,3 @@
-use std::error::Error;
-use std::net::SocketAddr;
-
 use async_graphql::{
 	http::{playground_source, GraphQLPlaygroundConfig},
 	Context, EmptyMutation, EmptySubscription, Object, Schema,
@@ -14,6 +11,7 @@ use axum::{
 	Router, Server,
 };
 use sqlx::{query_as, Pool, Sqlite, SqlitePool};
+use std::net::SocketAddr;
 use tower_http::cors::{Any, CorsLayer};
 use tracing::info;
 
@@ -87,11 +85,12 @@ impl Query {
 		};
 
 		match username {
-            // language=SQLite
-            None => match query_as::<_, BoardGame>(r#"
-						SELECT gameid as id, title as name, published as year, playing_time as playtime, min_players, max_players
-						FROM boardgames ORDER BY title
-					"#)
+            None => match query_as::<_, BoardGame>(
+            	// language=SQLite
+				r#"
+					SELECT gameid as id, title as name, published as year, playing_time as playtime, min_players, max_players
+					FROM boardgames ORDER BY title
+				"#)
                 .fetch_all(pool)
                 .await {
                 Ok(games) => Ok(games),
@@ -104,8 +103,9 @@ impl Query {
                     db(&username, &games).await;
                 }
 
+                match query_as::<_, BoardGame>(
                 // language=SQLite
-                match query_as::<_, BoardGame>(r#"
+				r#"
 					SELECT gameid as id, title as name, published as year, playing_time as playtime, min_players, max_players
 					FROM boardgames
 					INNER JOIN boardgames_users on boardgames_users.game_id = boardgames.gameid
