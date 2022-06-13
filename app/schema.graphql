@@ -2,7 +2,7 @@ schema {
   query: Query
 }
 
-type BoardGameResult {
+type BoardGame {
   id: Int!
   maxPlayers: Int
   minPlayers: Int
@@ -12,11 +12,11 @@ type BoardGameResult {
 }
 
 type Query {
-  games(username: String): [BoardGameResult!]!
-  users: [UserResult!]!
+  games(username: String): [BoardGame!]!
+  users: [User!]!
 }
 
-type UserResult {
+type User {
   id: Int
   username: String!
 }

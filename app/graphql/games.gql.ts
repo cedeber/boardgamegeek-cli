@@ -8,12 +8,12 @@ export type GamesQueryVariables = Types.Exact<{
 }>;
 
 
-export type GamesQuery = { __typename?: 'Query', games: Array<{ __typename?: 'BoardGameResult', id: number, name: string }> };
+export type GamesQuery = { __typename?: 'Query', games: Array<{ __typename?: 'BoardGame', id: number, name: string }> };
 
 export type UsersQueryVariables = Types.Exact<{ [key: string]: never; }>;
 
 
-export type UsersQuery = { __typename?: 'Query', users: Array<{ __typename?: 'UserResult', username: string }> };
+export type UsersQuery = { __typename?: 'Query', users: Array<{ __typename?: 'User', username: string }> };
 
 
 export const GamesDocument = gql`

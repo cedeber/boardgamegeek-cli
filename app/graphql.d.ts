@@ -12,8 +12,8 @@ export type Scalars = {
   Float: number;
 };
 
-export type BoardGameResult = {
-  __typename?: 'BoardGameResult';
+export type BoardGame = {
+  __typename?: 'BoardGame';
   id: Scalars['Int'];
   maxPlayers?: Maybe<Scalars['Int']>;
   minPlayers?: Maybe<Scalars['Int']>;
@@ -24,8 +24,8 @@ export type BoardGameResult = {
 
 export type Query = {
   __typename?: 'Query';
-  games: Array<BoardGameResult>;
-  users: Array<UserResult>;
+  games: Array<BoardGame>;
+  users: Array<User>;
 };
 
 
@@ -33,8 +33,8 @@ export type QueryGamesArgs = {
   username?: InputMaybe<Scalars['String']>;
 };
 
-export type UserResult = {
-  __typename?: 'UserResult';
+export type User = {
+  __typename?: 'User';
   id?: Maybe<Scalars['Int']>;
   username: Scalars['String'];
 };

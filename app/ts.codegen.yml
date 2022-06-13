@@ -3,6 +3,7 @@ schema: ./schema.graphql
 documents:
   - ./pages/**/*.graphql
   - ./components/**/*.graphql
+  - ./graphql/**/*.graphql
 generates:
   ./graphql.d.ts:
     - typescript
